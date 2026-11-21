@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E0B14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Тихие места">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Тихие места Самары</title>
+<style>
+:root{--bg:#0E0B14;--card:#1A1424;--line:#2E2440;--ink:#F2EEF8;--muted:#9C90B3;--p:#8A4DFF;--gold:#D9B44A;--bad:#FF8A80;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;border-radius:50%;background:#000;border:3px solid var(--gold);box-shadow:inset 0 0 0 4px var(--p)}
+h1{font-size:20px;margin:0;font-weight:700}
+main{max-width:560px;margin:0 auto;padding:14px 16px calc(90px + env(safe-area-inset-bottom))}
+section[hidden]{display:none}
+input,select,textarea{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--p);border-color:transparent}
+label{display:block;font-weight:600;margin:14px 0 5px;font-size:14px;color:var(--muted)}
+label.check{display:flex;gap:10px;align-items:flex-start;color:var(--ink);font-weight:400;font-size:16px}
+label.check input{width:22px;height:22px;margin:1px 0 0;flex:none;accent-color:var(--p)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:12px -16px;padding:0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 15px;border-radius:999px;font:600 14px inherit;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--p);border-color:var(--p)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card h2{margin:0;font-size:18px}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 8px}
+.card p{margin:0 0 8px}
+.own{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.own b{display:block}.own span{color:var(--muted);font-size:13px}
+.btn{display:inline-block;background:var(--p);color:#fff;border:0;border-radius:12px;padding:12px 16px;font:700 16px inherit;text-decoration:none;cursor:pointer;text-align:center}
+.btn.alt{background:var(--line)}.btn.full{width:100%;margin-top:16px}.btn.sm{padding:9px 12px;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.empty{color:var(--muted);text-align:center;padding:36px 8px}
+.err{color:var(--bad);min-height:1.4em;margin-top:10px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#140F1D;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;color:var(--muted);padding:12px 4px;font:600 13px inherit;cursor:pointer}
+nav button[aria-current="page"]{color:var(--gold)}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--gold);color:#000;font-weight:700;padding:10px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style></head><body>
+<header><div class="logo"></div><h1>Тихие места Самары</h1></header>
+<main>
+<section id="v-cat"><input id="q" type="search" placeholder="Название или адрес" aria-label="Поиск"><div class="chips" id="chips"></div><div id="list"></div></section>
+<section id="v-add" hidden>
+<h2 id="ftitle" style="margin:6px 0 0">Новое заведение</h2>
+<label for="name">Название</label><input id="name" maxlength="80">
+<label for="kind">Категория</label><select id="kind"><option>Кафе</option><option>Кофейни</option><option>Барбершопы</option><option>Студии</option></select>
+<label for="addr">Адрес</label><input id="addr" maxlength="120" placeholder="ул. Ленинградская, 40">
+<label for="text">Коротко о месте</label><textarea id="text" rows="3" maxlength="300"></textarea>
+<label for="owner">Имя владельца</label><input id="owner" maxlength="60">
+<label for="tg">Telegram владельца</label><input id="tg" placeholder="@username" maxlength="33" autocapitalize="none" autocorrect="off">
+<label class="check" style="margin-top:18px"><input type="checkbox" id="nosite"><span>Своего сайта у заведения нет (проверено)</span></label>
+<p class="err" id="err" role="status"></p>
+<button class="btn full" id="save">Сохранить</button>
+<button class="btn alt full" id="del" hidden>Удалить заведение</button>
+</section>
+<section id="v-data" hidden>
+<h2 style="margin:6px 0 4px">Данные</h2>
+<p class="sub" id="count"></p>
+<p>Данные хранятся на этом телефоне. Чтобы поделиться с коллегой, сохраните файл и отправьте ему, а он загрузит его у себя: новые заведения добавятся к его списку.</p>
+<div class="row"><button class="btn" id="exp">Сохранить файл</button><button class="btn alt" id="imp">Загрузить файл</button></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+<p class="err" id="derr" role="status"></p>
+</section>
+</main>
+<nav><button data-v="cat" aria-current="page">Каталог</button><button data-v="add">Добавить</button><button data-v="data">Данные</button></nav>
+<div id="toast" role="status"></div>
+<script>
+var $=function(i){return document.getElementById(i)},KINDS=["Кафе","Кофейни","Барбершопы","Студии"],cat="Все",editId=null,DB=[];
+try{DB=JSON.parse(localStorage.getItem("places")||"[]")}catch(e){DB=[]}
+function persist(){try{localStorage.setItem("places",JSON.stringify(DB))}catch(e){toast("Не удалось сохранить: нет места")}}
+function esc(s){return String(s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
+function toast(t){var e=$("toast");e.textContent=t;e.className="on";setTimeout(function(){e.className=""},1800)}
+function show(v){["cat","add","data"].forEach(function(x){$("v-"+x).hidden=x!==v});[].forEach.call(document.querySelectorAll("nav button"),function(b){b.setAttribute("aria-current",b.dataset.v===v?"page":"false")});
+if(v==="add"&&editId===null)resetForm();if(v==="data")$("count").textContent="Заведений в каталоге: "+DB.length;window.scrollTo(0,0)}
+document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;if(b.dataset.v==="add")editId=null;show(b.dataset.v)};
+["Все"].concat(KINDS).forEach(function(c){var b=document.createElement("button");b.className="chip";b.textContent=c;b.setAttribute("aria-pressed",c===cat);
+b.onclick=function(){cat=c;[].forEach.call($("chips").children,function(x){x.setAttribute("aria-pressed",x.textContent===cat)});render()};$("chips").appendChild(b)});
+function render(){var s=$("q").value.trim().toLowerCase(),r=DB.filter(function(p){return(cat==="Все"||p.kind===cat)&&(!s||(p.name+" "+p.addr).toLowerCase().indexOf(s)>-1)});
+$("list").innerHTML=r.length?r.map(function(p){return '<article class="card"><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.kind)+' · '+esc(p.addr)+'</p>'+(p.text?'<p>'+esc(p.text)+'</p>':'')+
+'<div class="own"><div><b>'+esc(p.owner)+'</b><span>Владелец</span></div><a class="btn sm" href="https://t.me/'+encodeURIComponent(p.tg)+'" target="_blank" rel="noopener">Написать</a></div>'+
+'<div class="row"><button class="btn alt sm" data-id="'+esc(p.id)+'">Изменить</button></div></article>'}).join(""):'<p class="empty">'+(DB.length?'Ничего не найдено':'Пока пусто. Откройте «Добавить» и внесите первое заведение.')+'</p>'}
+$("q").oninput=render;
+$("list").onclick=function(e){var b=e.target.closest("button[data-id]");if(!b)return;var p=DB.filter(function(x){return x.id===b.dataset.id})[0];if(!p)return;editId=p.id;
+$("ftitle").textContent="Изменить заведение";["name","kind","addr","text","owner"].forEach(function(k){$(k).value=p[k]});$("tg").value="@"+p.tg;$("nosite").checked=true;$("del").hidden=false;$("err").textContent="";show("add")};
+function resetForm(){$("ftitle").textContent="Новое заведение";["name","addr","text","owner","tg"].forEach(function(k){$(k).value=""});$("kind").selectedIndex=0;$("nosite").checked=false;$("del").hidden=true;$("err").textContent=""}
+function check(o){var tg=String(o.tg||"").trim().replace(/^@/,"");
+if(String(o.name||"").trim().length<2)return"Укажите название";if(KINDS.indexOf(o.kind)<0)return"Выберите категорию";if(String(o.addr||"").trim().length<3)return"Укажите адрес";
+if(String(o.owner||"").trim().length<2)return"Укажите имя владельца";if(!/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(tg))return"Telegram укажите в виде @username";return""}
+$("save").onclick=function(){var o={name:$("name").value,kind:$("kind").value,addr:$("addr").value,text:$("text").value,owner:$("owner").value,tg:$("tg").value},m=check(o);
+if(!m&&!$("nosite").checked)m="В каталог попадают только заведения без своего сайта";if(m){$("err").textContent=m;return}
+var rec={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:o.name.trim(),kind:o.kind,addr:o.addr.trim(),text:o.text.trim(),owner:o.owner.trim(),tg:o.tg.trim().replace(/^@/,"")};
+if(editId){DB=DB.map(function(x){return x.id===editId?rec:x})}else{DB.unshift(rec)}persist();editId=null;render();show("cat");toast("Сохранено")};
+$("del").onclick=function(){if(!confirm("Удалить заведение?"))return;DB=DB.filter(function(x){return x.id!==editId});persist();editId=null;render();show("cat");toast("Удалено")};
+$("exp").onclick=function(){var b=new Blob([JSON.stringify(DB,null,1)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="tihie-mesta.json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)};
+$("imp").onclick=function(){$("file").click()};
+$("file").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var a=JSON.parse(r.result);if(!Array.isArray(a))throw 0;var n=0,ids={};DB.forEach(function(x){ids[x.id]=1});
+a.forEach(function(x){if(x&&typeof x.id==="string"&&!ids[x.id]&&!check(x)){DB.push({id:x.id,name:String(x.name).trim(),kind:x.kind,addr:String(x.addr).trim(),text:String(x.text||"").trim(),owner:String(x.owner).trim(),tg:String(x.tg).trim().replace(/^@/,"")});ids[x.id]=1;n++}});
+persist();render();$("derr").style.color="var(--gold)";$("derr").textContent="Добавлено заведений: "+n;$("count").textContent="Заведений в каталоге: "+DB.length}catch(e){$("derr").style.color="";$("derr").textContent="Это не файл каталога"}};r.readAsText(f);this.value=""};
+render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(function(){});
+</script></body></html>
