@@ -57,8 +57,9 @@ main{order:2;width:100%;max-width:980px;padding-bottom:48px}#list{display:grid;g
 <label for="kind">Категория</label><select id="kind"><option>Кафе</option><option>Кофейни</option><option>Барбершопы</option><option>Студии</option></select>
 <label for="addr">Адрес</label><input id="addr" maxlength="120" placeholder="ул. Ленинградская, 40">
 <label for="text">Коротко о месте</label><textarea id="text" rows="3" maxlength="300"></textarea>
-<label for="owner">Имя владельца</label><input id="owner" maxlength="60">
-<label for="tg">Telegram владельца</label><input id="tg" placeholder="@username" maxlength="33" autocapitalize="none" autocorrect="off">
+<label for="owner">Имя владельца (если известно)</label><input id="owner" maxlength="60">
+<label for="tg">Telegram</label><input id="tg" placeholder="@username" maxlength="33" autocapitalize="none" autocorrect="off">
+<label for="phone">Телефон</label><input id="phone" type="tel" maxlength="20" placeholder="+7 900 000-00-00">
 <label class="check" style="margin-top:18px"><input type="checkbox" id="nosite"><span>Своего сайта у заведения нет (проверено)</span></label>
 <p class="err" id="err" role="status"></p>
 <button class="btn full" id="save">Сохранить</button>
@@ -77,35 +78,49 @@ main{order:2;width:100%;max-width:980px;padding-bottom:48px}#list{display:grid;g
 <div id="toast" role="status"></div>
 <script>
 var $=function(i){return document.getElementById(i)},KINDS=["Кафе","Кофейни","Барбершопы","Студии"],cat="Все",editId=null,DB=[];
-try{DB=JSON.parse(localStorage.getItem("places")||"[]")}catch(e){DB=[]}
+var SEED=[
+{id:"s1",name:"Coffee Inn",kind:"Кофейни",addr:"ул. Чапаевская, 232",text:"Небольшая уютная кофейня: настольные игры, булочки и сырники.",owner:"",tg:"",phone:"+7 919 800-19-49"},
+{id:"s2",name:"Muwa",kind:"Кофейни",addr:"ул. Чапаевская, 92",text:"Кофе, десерты и выпечка, открытая кухня.",owner:"",tg:"muwacoffee",phone:"+7 995 909-28-68"},
+{id:"s3",name:"Точка Притяжения",kind:"Кофейни",addr:"ул. Фрунзе, 130",text:"Маленькая кофейня с коллекцией винтажного фарфора.",owner:"",tg:"",phone:"+7 927 012-02-30"},
+{id:"s4",name:"Green Zone",kind:"Кофейни",addr:"ул. Ленинградская, 28А",text:"Кофейня со свежевыжатыми соками и смузи.",owner:"",tg:"",phone:""},
+{id:"s5",name:"Momenty Sladosti",kind:"Кафе",addr:"ул. Самарская, 69",text:"Кондитерская с десертами и кофе, можно заказать торт.",owner:"",tg:"",phone:"+7 927 600-82-00"},
+{id:"s6",name:"HOBNOB",kind:"Барбершопы",addr:"ул. Галактионовская, 81",text:"Мужские стрижки, онлайн-запись.",owner:"",tg:"",phone:"+7 927 017-82-28"},
+{id:"s7",name:"Firma",kind:"Барбершопы",addr:"ул. Чапаевская, 200",text:"Мужская парикмахерская: стрижки и оформление бороды.",owner:"",tg:"",phone:"+7 846 231-20-69"},
+{id:"s8",name:"CREW",kind:"Барбершопы",addr:"ул. Льва Толстого, 89А",text:"Барбершоп, гостей угощают чаем и кофе.",owner:"",tg:"",phone:"+7 937 181-20-20"},
+{id:"s9",name:"Hey Honey Nail Bar",kind:"Студии",addr:"ул. Молодогвардейская, 43",text:"Студия маникюра и педикюра.",owner:"",tg:"",phone:"+7 846 203-55-53"}];
 function persist(){try{localStorage.setItem("places",JSON.stringify(DB))}catch(e){toast("Не удалось сохранить: нет места")}}
-function esc(s){return String(s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
+try{DB=JSON.parse(localStorage.getItem("places")||"[]");if(!Array.isArray(DB))DB=[]}catch(e){DB=[]}
+try{if(!localStorage.getItem("seeded")){var have={};DB.forEach(function(x){have[x.id]=1});SEED.forEach(function(x){if(!have[x.id])DB.push(x)});localStorage.setItem("seeded","1");persist()}}catch(e){if(!DB.length)DB=SEED.slice()}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
 function toast(t){var e=$("toast");e.textContent=t;e.className="on";setTimeout(function(){e.className=""},1800)}
 function show(v){["cat","add","data"].forEach(function(x){$("v-"+x).hidden=x!==v});[].forEach.call(document.querySelectorAll("nav button"),function(b){b.setAttribute("aria-current",b.dataset.v===v?"page":"false")});
 if(v==="add"&&editId===null)resetForm();if(v==="data")$("count").textContent="Заведений в каталоге: "+DB.length;window.scrollTo(0,0)}
 document.querySelector("nav").onclick=function(e){var b=e.target.closest("button");if(!b)return;if(b.dataset.v==="add")editId=null;show(b.dataset.v)};
 ["Все"].concat(KINDS).forEach(function(c){var b=document.createElement("button");b.className="chip";b.textContent=c;b.setAttribute("aria-pressed",c===cat);
 b.onclick=function(){cat=c;[].forEach.call($("chips").children,function(x){x.setAttribute("aria-pressed",x.textContent===cat)});render()};$("chips").appendChild(b)});
+function contact(p){var who=p.owner?'<b>'+esc(p.owner)+'</b><span>Владелец</span>':'<span>Контакт заведения</span>';
+var btns=(p.tg?'<a class="btn sm" href="https://t.me/'+encodeURIComponent(p.tg)+'" target="_blank" rel="noopener">Telegram</a>':'')+(p.phone?'<a class="btn alt sm" href="tel:'+esc(String(p.phone).replace(/[^+\d]/g,""))+'">Позвонить</a>':'');
+return '<div class="own"><div>'+who+'</div><div class="row" style="margin:0">'+btns+'</div></div>'}
 function render(){var s=$("q").value.trim().toLowerCase(),r=DB.filter(function(p){return(cat==="Все"||p.kind===cat)&&(!s||(p.name+" "+p.addr).toLowerCase().indexOf(s)>-1)});
-$("list").innerHTML=r.length?r.map(function(p){return '<article class="card"><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.kind)+' · '+esc(p.addr)+'</p>'+(p.text?'<p>'+esc(p.text)+'</p>':'')+
-'<div class="own"><div><b>'+esc(p.owner)+'</b><span>Владелец</span></div><a class="btn sm" href="https://t.me/'+encodeURIComponent(p.tg)+'" target="_blank" rel="noopener">Написать</a></div>'+
+$("list").innerHTML=r.length?r.map(function(p){return '<article class="card"><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.kind)+' · '+esc(p.addr)+'</p>'+(p.text?'<p>'+esc(p.text)+'</p>':'')+contact(p)+
 '<div class="row"><button class="btn alt sm" data-id="'+esc(p.id)+'">Изменить</button></div></article>'}).join(""):'<p class="empty">'+(DB.length?'Ничего не найдено':'Пока пусто. Откройте «Добавить» и внесите первое заведение.')+'</p>'}
 $("q").oninput=render;
 $("list").onclick=function(e){var b=e.target.closest("button[data-id]");if(!b)return;var p=DB.filter(function(x){return x.id===b.dataset.id})[0];if(!p)return;editId=p.id;
-$("ftitle").textContent="Изменить заведение";["name","kind","addr","text","owner"].forEach(function(k){$(k).value=p[k]});$("tg").value="@"+p.tg;$("nosite").checked=true;$("del").hidden=false;$("err").textContent="";show("add")};
-function resetForm(){$("ftitle").textContent="Новое заведение";["name","addr","text","owner","tg"].forEach(function(k){$(k).value=""});$("kind").selectedIndex=0;$("nosite").checked=false;$("del").hidden=true;$("err").textContent=""}
-function check(o){var tg=String(o.tg||"").trim().replace(/^@/,"");
+$("ftitle").textContent="Изменить заведение";["name","kind","addr","text","owner","phone"].forEach(function(k){$(k).value=p[k]||""});$("tg").value=p.tg?"@"+p.tg:"";$("nosite").checked=true;$("del").hidden=false;$("err").textContent="";show("add")};
+function resetForm(){$("ftitle").textContent="Новое заведение";["name","addr","text","owner","tg","phone"].forEach(function(k){$(k).value=""});$("kind").selectedIndex=0;$("nosite").checked=false;$("del").hidden=true;$("err").textContent=""}
+function check(o){var tg=String(o.tg||"").trim().replace(/^@/,""),ph=String(o.phone||"").replace(/\D/g,"");
 if(String(o.name||"").trim().length<2)return"Укажите название";if(KINDS.indexOf(o.kind)<0)return"Выберите категорию";if(String(o.addr||"").trim().length<3)return"Укажите адрес";
-if(String(o.owner||"").trim().length<2)return"Укажите имя владельца";if(!/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(tg))return"Telegram укажите в виде @username";return""}
-$("save").onclick=function(){var o={name:$("name").value,kind:$("kind").value,addr:$("addr").value,text:$("text").value,owner:$("owner").value,tg:$("tg").value},m=check(o);
+if(!tg&&!ph)return"Укажите Telegram или телефон";if(tg&&!/^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(tg))return"Telegram укажите в виде @username";if(ph&&ph.length<10)return"Проверьте номер телефона";return""}
+function clean(o,id){return{id:id,name:String(o.name).trim(),kind:o.kind,addr:String(o.addr).trim(),text:String(o.text||"").trim(),owner:String(o.owner||"").trim(),tg:String(o.tg||"").trim().replace(/^@/,""),phone:String(o.phone||"").trim()}}
+$("save").onclick=function(){var o={name:$("name").value,kind:$("kind").value,addr:$("addr").value,text:$("text").value,owner:$("owner").value,tg:$("tg").value,phone:$("phone").value},m=check(o);
 if(!m&&!$("nosite").checked)m="В каталог попадают только заведения без своего сайта";if(m){$("err").textContent=m;return}
-var rec={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:o.name.trim(),kind:o.kind,addr:o.addr.trim(),text:o.text.trim(),owner:o.owner.trim(),tg:o.tg.trim().replace(/^@/,"")};
+var rec=clean(o,editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6));
 if(editId){DB=DB.map(function(x){return x.id===editId?rec:x})}else{DB.unshift(rec)}persist();editId=null;render();show("cat");toast("Сохранено")};
 $("del").onclick=function(){if(!confirm("Удалить заведение?"))return;DB=DB.filter(function(x){return x.id!==editId});persist();editId=null;render();show("cat");toast("Удалено")};
 $("exp").onclick=function(){var b=new Blob([JSON.stringify(DB,null,1)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="tihie-mesta.json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)};
 $("imp").onclick=function(){$("file").click()};
 $("file").onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var a=JSON.parse(r.result);if(!Array.isArray(a))throw 0;var n=0,ids={};DB.forEach(function(x){ids[x.id]=1});
-a.forEach(function(x){if(x&&typeof x.id==="string"&&!ids[x.id]&&!check(x)){DB.push({id:x.id,name:String(x.name).trim(),kind:x.kind,addr:String(x.addr).trim(),text:String(x.text||"").trim(),owner:String(x.owner).trim(),tg:String(x.tg).trim().replace(/^@/,"")});ids[x.id]=1;n++}});
+a.forEach(function(x){if(x&&typeof x.id==="string"&&!ids[x.id]&&!check(x)){DB.push(clean(x,x.id));ids[x.id]=1;n++}});
 persist();render();$("derr").style.color="var(--gold)";$("derr").textContent="Добавлено заведений: "+n;$("count").textContent="Заведений в каталоге: "+DB.length}catch(e){$("derr").style.color="";$("derr").textContent="Это не файл каталога"}};r.readAsText(f);this.value=""};
 render();
 </script></body></html>
